@@ -1,0 +1,52 @@
+8
+
+dir
+42
+https://multisvm.googlecode.com/svn/trunk/multisvm_1.0/src/testing
+https://multisvm.googlecode.com/svn
+
+
+
+2009-07-24T18:52:05.305332Z
+39
+sergherrero
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+85ce9a1e-1b16-11de-9c9a-2d325a3e6494
+
+testing.cu
+file
+45
+
+
+
+2009-11-14T00:52:12.000000Z
+7e6ea155a47f6bfe602597372ce41065
+2009-11-14T20:20:17.391972Z
+45
+sergherrero
+
+testing_kernel.cu
+file
+45
+
+
+
+2009-11-14T16:16:06.000000Z
+89f75b2f12621d4e3f2448c156bad9f8
+2009-11-14T20:20:17.391972Z
+45
+sergherrero
+

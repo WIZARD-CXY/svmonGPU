@@ -1,0 +1,37 @@
+8
+
+dir
+42
+https://multisvm.googlecode.com/svn/trunk/multisvm_1.0/src
+https://multisvm.googlecode.com/svn
+
+
+
+2009-07-27T21:47:08.454741Z
+40
+sergherrero
+
+
+svn:special svn:externals svn:needs-lock
+
+
+
+
+
+
+
+
+
+
+
+85ce9a1e-1b16-11de-9c9a-2d325a3e6494
+
+common
+dir
+
+testing
+dir
+
+training
+dir
+

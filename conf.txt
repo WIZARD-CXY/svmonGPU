@@ -1,0 +1,6 @@
+3
+/lustre/home/zjucxy/multisvm_1.0/data/adult/a9a /lustre/home/zjucxy/multisvm_1.0/data/adult/a9a.t 123 32561 16281 2 100 0.5
+/lustre/home/zjucxy/multisvm_1.0/data/web/w8a /lustre/home/zjucxy/multisvm_1.0/data/web/w8a.t 300 49749 14951 2 64 7.8125
+/lustre/home/zjucxy/multisvm_1.0/data/mnist/mnist.scale /lustre/home/zjucxy/multisvm_1.0/data/mnist/mnist.scale.t 784 60000 10000 10 10 0.125
+/lustre/home/zjucxy/multisvm_1.0/data/letter/letter.scale /lustre/home/zjucxy/multisvm_1.0/data/letter/letter.scale.t 15000 5000 26 100 0.5
+/lustre/home/zjucxy/multisvm_1.0/data/shuttle/shuttle.scale /lustre/home/zjucxy/multisvm_1.0/data/shuttle/shuttle.scale.t 43500 14500

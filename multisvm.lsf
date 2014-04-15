@@ -1,0 +1,10 @@
+#BSUB -q gpu
+#BSUB -J multisvm 
+#BSUB -L /bin/bash 
+#BSUB -o %J.out
+#BSUB -e %J.err
+#BSUB -n 16
+#BSUB -R span[ptile=16] 
+MODULEPATH=/lustre/utility/modulefiles:/lustre/utility/modulefiles:/usr/share/Modules/modulefiles:/etc/modulefiles
+module load cuda/5.5
+./multisvm

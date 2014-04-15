@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 46
+/svn/!svn/ver/40/trunk/multisvm_1.0/src/common
+END
+utilities.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/!svn/ver/35/trunk/multisvm_1.0/src/common/utilities.cpp
+END
+cuTimer.cu
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/!svn/ver/45/trunk/multisvm_1.0/src/common/cuTimer.cu
+END
+shared_kernel.cu
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/!svn/ver/45/trunk/multisvm_1.0/src/common/shared_kernel.cu
+END
+parseinputs.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/!svn/ver/44/trunk/multisvm_1.0/src/common/parseinputs.cpp
+END
+Cache.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/!svn/ver/45/trunk/multisvm_1.0/src/common/Cache.cpp
+END
+kernelevaluation.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/!svn/ver/45/trunk/multisvm_1.0/src/common/kernelevaluation.cpp
+END
