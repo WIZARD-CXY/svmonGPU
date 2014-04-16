@@ -24,22 +24,22 @@
  */
 
 void testingclassifier(	float* h_xtraindata,
-						float* h_xtestdata,
-						int* h_ltraindata,
-						int* h_ltesthatdata,
-						int* h_rdata,
-						float* h_atraindata,
-						int ntraining,
-						int ntesting,
-						int nfeatures,
-						int nclasses,
-						int ntasks,
-						float* h_b,
-						float beta,
-						float a,
-						float b,
-						float d,
-						int kernelcode)
+			float* h_xtestdata,
+			int* h_ltraindata,
+			int* h_ltesthatdata,
+			int* h_rdata,
+			float* h_atraindata,
+			int ntraining,
+			int ntesting,
+			int nfeatures,
+			int nclasses,
+			int ntasks,
+			float* h_b,
+			float beta,
+			float a,
+			float b,
+			float d,
+			int kernelcode)
 {
 
 		int numThreads = (ntraining < MAXTHREADS*2) ? nextPow2((ntraining + 1)/ 2) : MAXTHREADS;
