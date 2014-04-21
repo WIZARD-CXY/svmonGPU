@@ -1,6 +1,7 @@
 #include "../../include/testing.h"
 #include "../common/shared_kernel.cu"
 #include "testing_kernel.cu"
+#define bdy 10
 
 
 /**
@@ -24,22 +25,22 @@
  */
 
 void testingclassifier(	float* h_xtraindata,
-			float* h_xtestdata,
-			int* h_ltraindata,
-			int* h_ltesthatdata,
-			int* h_rdata,
-			float* h_atraindata,
-			int ntraining,
-			int ntesting,
-			int nfeatures,
-			int nclasses,
-			int ntasks,
-			float* h_b,
-			float beta,
-			float a,
-			float b,
-			float d,
-			int kernelcode)
+						float* h_xtestdata,
+						int* h_ltraindata,
+						int* h_ltesthatdata,
+						int* h_rdata,
+						float* h_atraindata,
+						int ntraining,
+						int ntesting,
+						int nfeatures,
+						int nclasses,
+						int ntasks,
+						float* h_b,
+						float beta,
+						float a,
+						float b,
+						float d,
+						int kernelcode)
 {
 
 		int numThreads = (ntraining < MAXTHREADS*2) ? nextPow2((ntraining + 1)/ 2) : MAXTHREADS;
@@ -69,15 +70,15 @@ void testingclassifier(	float* h_xtraindata,
 		cudaMemcpy(d_rdata, h_rdata, sizeof(int) * nclasses * ntasks,cudaMemcpyHostToDevice);
 
 		// Allocate device memory for Y
-		int * d_ytraindata;
+		int *d_ytraindata;
 		cudaMalloc((void**) &d_ytraindata, sizeof(int) * ntraining * ntasks);
 
 		float* h_ytestdata= (float*) malloc(sizeof(float) * ntesting * nclasses);
-		float * d_ytestdata;
+		float *d_ytestdata;
 		cudaMalloc((void**) &d_ytestdata, sizeof(float) * ntesting * nclasses);
 
 		// Allocate device memory for alpha
-		float * d_atraindata;
+		float *d_atraindata;
 		cudaMalloc((void**) &d_atraindata, sizeof(float) * ntraining * ntasks);
 		cudaMemcpy(d_atraindata, h_atraindata, sizeof(float) * ntraining * ntasks,cudaMemcpyHostToDevice);
 
@@ -92,9 +93,9 @@ void testingclassifier(	float* h_xtraindata,
 		cudaMemcpy(d_b, h_b, sizeof(float) * ntasks,cudaMemcpyHostToDevice);
 
 		//Allocate memory for the reduction operation
-		float* h_reduction= (float*) malloc(sizeof(float) *numBlocksRed * ntasks);
+		float* h_reduction= (float*) malloc(sizeof(float) *numBlocksRed *bdy* ntasks);
 		float* d_reduction;
-		cudaMalloc((void**) &d_reduction, sizeof(float) *numBlocksRed * ntasks);
+		cudaMalloc((void**) &d_reduction, sizeof(float) *numBlocksRed * bdy*ntasks);
 
 
 		void* temp;
@@ -193,6 +194,67 @@ void testingclassifier(	float* h_xtraindata,
 
 		cudaDeviceSynchronize();
 
+		float* d_dottraindata;
+		cudaMalloc((void**) &d_dottraindata, sizeof(float) * ntraining);
+
+		dim3 dimBlockTrainSelfDot(numThreads, 1, 1);
+		dim3 dimGridTrainSelfDot(numBlocksRed, 1, 1);
+
+        // perform selfdot on traindata
+		if(isNtrainingPow2)
+		{
+			switch (numThreads)
+			{
+				case 512:
+					makeselfdot <512,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 256:
+					makeselfdot <256,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 128:
+					makeselfdot <128,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 64:
+					makeselfdot <64,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 32:
+					makeselfdot <32,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 16:
+					makeselfdot <16,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case  8:
+					makeselfdot <8,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case  4:
+					makeselfdot <4,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case  2:
+					makeselfdot <2,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case  1:
+					makeselfdot <1,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+			}
+		}
+		else
+		{
+			switch (numThreads)
+			{
+				case 512:
+					makeselfdot <512,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 256:
+					makeselfdot <256,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 128:
+					makeselfdot <128,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 64:
+					makeselfdot <64,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 32:
+					makeselfdot <32,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case 16:
+					makeselfdot <16,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case  8:
+					makeselfdot <8,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case  4:
+					makeselfdot <4,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case  2:
+					makeselfdot <2,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+				case  1:
+					makeselfdot <1,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
+			}
+		}
+		cudaDeviceSynchronize();
+
 		int ntestingfrag=sizeOfCache;
 		int prevNtestingfrag=0;
 
@@ -208,6 +270,7 @@ void testingclassifier(	float* h_xtraindata,
 			h_xtestdatatemp = (float*) malloc(sizeof(float) * ntestsize * nfeatures);
 
 			int k=0;
+			// copy prevNtestingfrag to ntestingfrag test sample
 			for (int i=prevNtestingfrag; i< ntestingfrag; i++)
 			{
 				for (int j=0; j<nfeatures; j++)
@@ -218,9 +281,7 @@ void testingclassifier(	float* h_xtraindata,
 			}
 
 			cudaMemcpy(d_xtestdata, h_xtestdatatemp, sizeof(float) * ntestsize * nfeatures, cudaMemcpyHostToDevice);
-
 			cudaMallocPitch((void**)&d_kdata, &cachePitch, ntraining* sizeof(float), ntestsize);
-
 
 			cudaError_t err = cudaGetLastError();
 			if(err)
@@ -229,6 +290,7 @@ void testingclassifier(	float* h_xtraindata,
 			}
 
             // perform the matrix computation d_kdata = d_xtraindata * d_xtestdata
+            // d_kdata[i][j] means the training sample xi dot multiply with test sample zj
 			cublasSgemm('n', 't', ntraining, ntestsize, nfeatures, 1, d_xtraindata, ntraining, d_xtestdata, ntestsize, 0, d_kdata, ntraining);
 			cudaThreadSynchronize();
 
@@ -240,69 +302,7 @@ void testingclassifier(	float* h_xtraindata,
 
 			if(kernelcode==0)
 			{
-
-				float* d_dottraindata=0;
-				cudaMalloc((void**) &d_dottraindata, sizeof(float) * ntraining);
-
-				dim3 dimBlockTrainSelfDot(numThreads, 1, 1);
-				dim3 dimGridTrainSelfDot(numBlocksRed, 1, 1);
-
-				if(isNtrainingPow2)
-				{
-					switch (numThreads)
-					{
-						case 512:
-							makeselfdot <512,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 256:
-							makeselfdot <256,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 128:
-							makeselfdot <128,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 64:
-							makeselfdot <64,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 32:
-							makeselfdot <32,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 16:
-							makeselfdot <16,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case  8:
-							makeselfdot <8,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case  4:
-							makeselfdot <4,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case  2:
-							makeselfdot <2,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case  1:
-							makeselfdot <1,true><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-					}
-				}
-				else
-				{
-					switch (numThreads)
-					{
-						case 512:
-							makeselfdot <512,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 256:
-							makeselfdot <256,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 128:
-							makeselfdot <128,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 64:
-							makeselfdot <64,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 32:
-							makeselfdot <32,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case 16:
-							makeselfdot <16,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case  8:
-							makeselfdot <8,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case  4:
-							makeselfdot <4,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case  2:
-							makeselfdot <2,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-						case  1:
-							makeselfdot <1,false><<< dimGridTrainSelfDot, dimBlockTrainSelfDot, smemSize >>>(d_xtraindata, d_dottraindata,nfeatures,ntraining); break;
-					}
-				}
-				cudaDeviceSynchronize();
-
-
-				float* d_dottestdata=0;
+				float* d_dottestdata;
 				cudaMalloc((void**) &d_dottestdata, sizeof(float) * ntestsize);
 
 				int numThreadsTest = (ntestsize < MAXTHREADS*2) ? nextPow2((ntestsize + 1)/ 2) : MAXTHREADS;
@@ -314,6 +314,7 @@ void testingclassifier(	float* h_xtraindata,
 
 				bool isNtestingPow2=isPow2(ntestsize);
 
+                // perform selfdot on testdata
 				if(isNtestingPow2)
 				{
 					switch (numThreadsTest)
@@ -368,14 +369,15 @@ void testingclassifier(	float* h_xtraindata,
 				}
 				cudaDeviceSynchronize();
 
-
-				for ( int i=0; i< ntestsize; i++)
+                // perform evaluation for every test sample from 0 to ntestsize
+				/*for ( int i=0; i< ntestsize; i++)
 				{
                  
 					dim3 dimBlockReduction(numThreads, 1, 1);
 					dim3 dimGridReduction(numBlocksRed, ntasks, 1);
                     
                     // one kernel launch deal with one test case
+                    // one thread block is storing partial result
 					if(isNtrainingPow2)
 					{
 						switch (numThreads)
@@ -438,35 +440,137 @@ void testingclassifier(	float* h_xtraindata,
 
 					cudaMemcpy(h_reduction, d_reduction, sizeof(float) * numBlocksRed * ntasks,cudaMemcpyDeviceToHost);
 
-
-
+                    // compute the full result of specified prevNtestingfrag + i test sample in j-th classifier's f value
+                    // and store it in h_f[j][prevNtestingfrag + i]
 					for (int j=0; j<ntasks; j++)
 					{
 						float sum=0;
 
 						for (int k=0; k<numBlocksRed; k++)
 						{
-							sum+=h_reduction[j*numBlocksRed +k];
+							sum+=h_reduction[j*numBlocksRed+k];
 						}
 
 						h_fdata[j * ntesting + prevNtestingfrag + i]= sum + h_b[j];
 
 					}
 
-
-
+                    // compute every testing sample from prevNtestingfrag + i to prevNtestingfrag + ntestsize 's y
+					// 
 					for (int m=0; m< nclasses; m++)
 					{
-						h_ytestdata[m*ntesting +prevNtestingfrag + i]=0;
+						h_ytestdata[m*ntesting+prevNtestingfrag + i]=0;
 
 						for (int n=0; n< ntasks; n++)
 						{
-							h_ytestdata[m*ntesting +prevNtestingfrag + i]+= h_rdata[m*ntasks + n]*h_fdata[n*ntesting+prevNtestingfrag+i];
+							h_ytestdata[m*ntesting +prevNtestingfrag + i] += h_rdata[m*ntasks + n]*h_fdata[n*ntesting+prevNtestingfrag+i];
+						}
+						printf("#%d class #%d test sample h_ytestdata is %d\n",m,prevNtestingfrag + i,h_ytestdata[m*ntesting +prevNtestingfrag + i]);
+					}
+				} */
+
+				// perform a advanced reductionrbf kernel with block dim is 2
+				// the y dim is bdy 
+				for ( int i=0; i< (ntestsize/numThreads)+1; i++)
+				{
+				    dim3 dimBlockReductioncxy(numThreads, bdy, 1);
+				    dim3 dimGridReductioncxy(numBlocksRed, ntasks, 1);
+                    
+				    if(isNtrainingPow2)
+				    {
+						switch (numThreads)
+						{
+							case 512:
+								reductionrbfcxy <512,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction, d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 256:
+								reductionrbfcxy <256,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 128:
+								reductionrbfcxy <128,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 64:
+								reductionrbfcxy <64,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 32:
+								reductionrbfcxy <32,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 16:
+								reductionrbfcxy <16,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case  8:
+								reductionrbfcxy <8,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case  4:
+								reductionrbfcxy <4,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case  2:
+								reductionrbfcxy <2,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case  1:
+								reductionrbfcxy <1,true><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
 						}
 					}
-				}
+					else
+					{
+						switch (numThreads)
+						{
+							case 512:
+								reductionrbfcxy <512,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 256:
+								reductionrbfcxy <256,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 128:
+								reductionrbfcxy <128,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 64:
+								reductionrbfcxy <64,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 32:
+								reductionrbfcxy <32,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case 16:
+								reductionrbfcxy <16,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case  8:
+								reductionrbfcxy <8,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case  4:
+								reductionrbfcxy <4,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case  2:
+								reductionrbfcxy <2,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+							case  1:
+								reductionrbfcxy <1,false><<< dimGridReductioncxy, dimBlockReductioncxy, smemSize >>>(d_ytraindata,d_atraindata,d_reduction,d_dottestdata, d_dottraindata,d_kdata,ntraining,ntestsize,i,beta,a,b,d,kernelcode,ntesting); break;
+						}
+					}
+					cudaDeviceSynchronize();
 
-				cudaFree(d_dottraindata);
+					cudaError_t errReduction = cudaGetLastError();
+					if(errReduction)
+					{
+						printf("Error Reduction: %s\n", cudaGetErrorString(errReduction));
+					}
+
+					cudaMemcpy(h_reduction, d_reduction, sizeof(float) * numBlocksRed *bdy* ntasks,cudaMemcpyDeviceToHost);
+
+                    // compute the full result of specified prevNtestingfrag + i test sample in j-th classifier's f value
+                    // and store it in h_f[j][prevNtestingfrag + i]
+					for (int j=0; j<ntasks; j++)
+					{
+						for(int jj=0; jj< bdy; jj++)
+						{
+
+				        	float sum=0;
+
+							for (int k=0; k<numBlocksRed; k++)
+							{
+								sum+=h_reduction[j*numBlocksRed*bdy+jj*numBlocksRed+k];
+							}
+
+							h_fdata[j * ntesting + prevNtestingfrag+i*bdy+jj]= sum + h_b[j];
+						}
+
+					}
+
+                    // compute every testing sample from prevNtestingfrag + i to prevNtestingfrag + ntestsize 's y
+					// 
+					for (int m=0; m< nclasses; m++)
+					{
+						h_ytestdata[m*ntesting+prevNtestingfrag + i]=0;
+
+						for (int n=0; n< ntasks; n++)
+						{
+							h_ytestdata[m*ntesting +prevNtestingfrag + i] += h_rdata[m*ntasks + n]*h_fdata[n*ntesting+prevNtestingfrag+i];
+						}
+						
+					}
+				}
+				
 				cudaFree(d_dottestdata);
 			}
 
@@ -477,23 +581,20 @@ void testingclassifier(	float* h_xtraindata,
 
 			if(ntestingfrag==ntesting)
 			{
-
 				break;
 			}
 
 			//Update
 			prevNtestingfrag=ntestingfrag;
-			ntestingfrag+= sizeOfCache;
+			ntestingfrag+=sizeOfCache;
 
-			if(ntestingfrag> ntesting )
+			if(ntestingfrag > ntesting )
 			{
 				ntestingfrag=ntesting;
 			}
-
-
 		}
 
-
+		cudaFree(d_dottraindata);
 
 		for (int i=0; i<ntesting; i++)
 		{
@@ -502,7 +603,6 @@ void testingclassifier(	float* h_xtraindata,
 
 			for (int j=0; j<nclasses; j++)
 			{
-
 				if(h_ytestdata[j*ntesting +i]> maxvalue)
 				{
 					maxvalue=h_ytestdata[j*ntesting +i];

@@ -210,7 +210,7 @@ void trainclassifier (			float* h_xtraindata,
 	#endif
 
 
-	printf("testing Phase :: %llu rows of kernel matrix will be cached (%llu bytes per row)\n", sizeOfCache, (int)rowPitch);
+	printf("training Phase :: %llu rows of kernel matrix will be cached (%llu bytes per row)\n", sizeOfCache, (int)rowPitch);
 
 	float* d_kdata;
 	size_t cachePitch;
@@ -415,7 +415,6 @@ void trainclassifier (			float* h_xtraindata,
 									b,
 									d,
 									kernelcode);
-
 					}
 				}
 
@@ -456,8 +455,9 @@ void trainclassifier (			float* h_xtraindata,
 		dim3 dimBlockAlpha(TPB);
 		dim3 dimGridAlpha(blockYAlpha);
 
+        /*
         // update alpha_Iup, alpha_Idown
-
+        
 		calculatealphas <<<dimGridAlpha, dimBlockAlpha>>>(	d_xtraindata,
 															d_kdata,
 															d_ytraindata,
@@ -478,8 +478,7 @@ void trainclassifier (			float* h_xtraindata,
 
 		cudaMemcpy(h_done, d_done, sizeof(int)* blockY,cudaMemcpyDeviceToHost);
 
-		dim3 dimBlockActiveTaskReduction(numThreads, 1, 1);
-		dim3 dimGridActiveTaskReduction(numBlocksRed, activeTasks, 1);
+		
 		cudaMemcpy(d_active, h_active, sizeof(int)* activeTasks,cudaMemcpyHostToDevice);
 
 
@@ -536,6 +535,65 @@ void trainclassifier (			float* h_xtraindata,
 					updateparams <1,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
 			}
 		}
+        */
+
+        // another way to merge the updateparams and calculatealpha
+        dim3 dimBlockActiveTaskReduction(numThreads, 1, 1);
+		dim3 dimGridActiveTaskReduction(numBlocksRed, activeTasks, 1);
+
+        if(isNtrainingPow2)
+		{
+			switch (numThreads)
+			{
+				case 512:
+					merge2kernel <512,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 256:
+					merge2kernel <256,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 128:
+					merge2kernel <128,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 64:
+					merge2kernel <64,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 32:
+					merge2kernel <32,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 16:
+					merge2kernel <16,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case  8:
+					merge2kernel <8,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case  4:
+					merge2kernel <4,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case  2:
+					merge2kernel <2,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case  1:
+					merge2kernel <1,true><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+			}
+		}
+		else
+		{
+			switch (numThreads)
+			{
+				case 512:
+					merge2kernel <512,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 256:
+					merge2kernel <256,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 128:
+					merge2kernel <128,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 64:
+					merge2kernel <64,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 32:
+					merge2kernel <32,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case 16:
+					merge2kernel <16,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case  8:
+					merge2kernel <8,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case  4:
+					merge2kernel <4,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case  2:
+					merge2kernel <2,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+				case  1:
+					merge2kernel <1,false><<< dimGridActiveTaskReduction, dimBlockActiveTaskReduction, smemSize >>>(d_xtraindata,d_kdata,d_ytraindata,d_atraindata,d_anewtraindata,d_aoldtraindata,d_fdata,d_Iup_global,d_Ilow_global,	d_Iup_cache,d_Ilow_cache,d_done,d_active,ntraining,	nfeatures,ntasks,activeTasks,d_C); break;
+			}
+		}
+
 
 
 		cudaDeviceSynchronize();

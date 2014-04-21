@@ -2,8 +2,6 @@
 #include "../../include/utilities.h"
 
 
-
-
 /**
  * Evaluate a row of the gram matrix
  * @param d_xtraindata device pointer to the training set
@@ -21,20 +19,20 @@
  * @param d if using polynomial kernel
  * @param kernelcode code that indicates the kernel type to run
  */
-void kerneleval ( 	float* d_xtraindata,
-					float* d_dottraindata,
-					float* d_kernelrow,
-					float* d_kerneldot,
-					float* d_kdata,
-					int gid,
-					int cacheid,
-					int ntraining,
-					int nfeatures,
-					float beta,
-					float a,
-					float b,
-					float d,
-					int kernelcode)
+void kerneleval(float* d_xtraindata,
+				float* d_dottraindata,
+				float* d_kernelrow,
+				float* d_kerneldot,
+				float* d_kdata,
+				int gid,
+				int cacheid,
+				int ntraining,
+				int nfeatures,
+				float beta,
+				float a,
+				float b,
+				float d,
+				int kernelcode)
 {
 
 	int numThreads = (nfeatures < MAXTHREADS*2) ? nextPow2((nfeatures + 1)/ 2) : MAXTHREADS;

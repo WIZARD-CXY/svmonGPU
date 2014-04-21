@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include "../../include/Cache.h"
 
-
-
 Cache::DirectoryEntry::DirectoryEntry()
 {
   status = NEVER;

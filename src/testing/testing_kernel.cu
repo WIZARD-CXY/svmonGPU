@@ -231,5 +231,151 @@ __global__ static void reductionrbf(int* d_ytraindata,
 
 }
 
+/**
+ * Performs a advanced reduction to sum the rbf values
+ * @param d_ytraindata device pointer to the array with binary labels
+ * @param d_atraindata device pointer to the array with the alphas
+ * @param d_reduction device pointer to the reduced values
+ * @param d_dottestdata device pointer to the dot product of the test data array with itself
+ * @param d_dottraindata device pointer to the dot product of the train data array with itself
+ * @param d_kdata device pointer to the matrix that stores rows of the gram matrix
+ * @param ntraining number of training samples in the training set
+ * @param ntestsize number of testing samples considered
+ * @param ntestlid number of the partition of the testing set considered
+ * @param beta parameter of the Radial Basis Fuction kernel
+ */
+
+template <unsigned int blockSize, bool isNtrainingPow2>
+__global__ static void reductionrbfcxy(int* d_ytraindata,
+									float* d_atraindata,
+									float* d_reduction,
+									float* d_dottestdata,
+									float* d_dottraindata,
+									float* d_kdata,
+									int ntraining,
+									int ntestsize,
+									int firstid,
+									float beta,
+									float a,
+									float b,
+									float d,
+									int kernelcode,
+									int ntesting)
+{
+	const unsigned int tid = threadIdx.x;
+	const unsigned int bidx = blockIdx.x;
+	const unsigned int bidy = blockIdx.y;
+	unsigned int i = blockIdx.x*(blockSize*2) + threadIdx.x;
+	unsigned int gridSize = blockSize*2*gridDim.x;
+	unsigned int ntestlid = firstid*blockDim.y+threadIdx.y;
+
+	__shared__ float reduction[blockSize*4];
+
+	reduction[threadIdx.y*blockSize+tid]= 0;
+
+	if(ntestlid< ntesting)
+	{
+
+		while (i < ntraining)
+		{
+			// rbf kernel
+			if(kernelcode==0)
+			{
+				float val= 2*beta*d_kdata[ntestlid*ntraining+i]-beta*(d_dottraindata[i] + d_dottestdata[ntestlid]);
+				val= expf(val);
+
+				reduction[threadIdx.y*blockDim.x + tid]+=d_atraindata[bidy*ntraining+i]*d_ytraindata[bidy*ntraining+i]*val;
+
+
+				if (isNtrainingPow2 || i + blockSize < ntraining)
+				{
+					val= 2*beta* d_kdata[ntestlid*ntraining +(i+blockSize)] - beta*(d_dottraindata[i+blockSize] + d_dottestdata[ntestlid]);
+					val= expf(val);
+
+					reduction[threadIdx.y*blockDim.x+tid]+=d_atraindata[bidy*ntraining +i+blockSize]*d_ytraindata[bidy*ntraining+i+blockSize]*val;
+				}
+			}
+			else if (kernelcode==1)
+			{
+				float val= d_kdata[ntestlid*ntraining +i];
+
+				reduction[tid] +=	d_atraindata[bidy*ntraining +i]*
+									d_ytraindata[bidy*ntraining +i]*
+									val;
+
+
+				if (isNtrainingPow2 || i + blockSize < ntraining)
+				{
+					val=  d_kdata[ntestlid*ntraining +(i+blockSize)];
+
+					reduction[tid] +=   d_atraindata[bidy*ntraining +i+blockSize]*
+										d_ytraindata[bidy*ntraining +i+blockSize]*
+										val;
+
+				}
+			}
+			else if (kernelcode==2)
+			{
+				float val= powf(a* d_kdata[ntestlid*ntraining +i]+b,d);
+
+				reduction[tid] +=	d_atraindata[bidy*ntraining +i]*
+									d_ytraindata[bidy*ntraining +i]*
+									val;
+
+
+				if (isNtrainingPow2 || i + blockSize < ntraining)
+				{
+					val= powf(a* d_kdata[ntestlid*ntraining +(i+blockSize)]+b,d);
+
+					reduction[tid] +=	d_atraindata[bidy*ntraining +i+blockSize]*
+										d_ytraindata[bidy*ntraining +i+blockSize]*
+										val;
+				}
+
+			}
+			else if (kernelcode==3)
+			{
+
+				float val= tanhf(a* d_kdata[ntestlid*ntraining +i]+b);
+
+				reduction[tid] +=	d_atraindata[bidy*ntraining +i]*
+									d_ytraindata[bidy*ntraining +i]*
+									val;
+
+
+				if (isNtrainingPow2 || i + blockSize < ntraining)
+				{
+					val= tanhf(a* d_kdata[ntestlid*ntraining +(i+blockSize)]+b);
+
+					reduction[tid] +=	d_atraindata[bidy*ntraining +i+blockSize]*
+										d_ytraindata[bidy*ntraining +i+blockSize]*
+										val;
+				}
+			}
+
+			i += gridSize;
+		}
+	
+
+		__syncthreads();
+
+
+		if(blockSize>=512)	{if(tid<256){reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 256];}__syncthreads();}
+		if(blockSize>=256)	{if(tid<128){reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 128];}__syncthreads();}
+		if(blockSize>=128)  {if(tid<64)	{reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 64];}__syncthreads();}
+		if(tid<32){	if(blockSize >= 64)	{reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 32];}
+					if(blockSize >= 32)	{reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 16];}
+					if(blockSize >= 16)	{reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 8];}
+					if(blockSize >= 8)	{reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 4];}
+					if(blockSize >= 4)	{reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 2];}
+					if(blockSize >= 2)	{reduction[threadIdx.y*blockDim.x+tid] += reduction[threadIdx.y*blockDim.x+tid + 1];}	}
+
+		if(tid==0)
+		{
+			d_reduction[bidy * gridDim.x*blockDim.y + threadIdx.y*gridDim.x+ bidx]=reduction[tid];
+		}
+	}
+}
+
 
 #endif // _TESTING_KERNEL_H_
